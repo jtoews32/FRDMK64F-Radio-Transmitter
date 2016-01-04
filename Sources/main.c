@@ -132,20 +132,11 @@ static void SPIWriteBuffer(uint8_t *bufOut, uint8_t bufSize) {
 }
 
 void nRFWriteRegister(uint8_t reg, uint8_t val) {
-  	uint8_t status, address = 0x20|reg;
+  	uint8_t address = 0x20|reg;		// this will make it so it writes.. (not reads)
   	CSN_ClrVal();								// CSN High-to-Low Starts Command
 
-  	while(nRFSPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until tx is empty
-  	while(nRFSPI_SendChar(address)!=ERR_OK) 	{} 	//* send character
-  	while(nRFSPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until data has been sent
-  	while(nRFSPI_GetCharsInRxBuf()==0) 	{} 	//* wait until we receive data
-  	while(nRFSPI_RecvChar(&status)!=ERR_OK) 	{} 	//* get data
-
-  	while(nRFSPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until tx is empty
-  	while(nRFSPI_SendChar(val)!=ERR_OK) 	{} 	//* send character
-  	while(nRFSPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until data has been sent
-  	while(nRFSPI_GetCharsInRxBuf()==0) 	{} 	//* wait until we receive data
-  	while(nRFSPI_RecvChar(&status)!=ERR_OK) 	{} 	//* get data
+    (void)SPIWriteRead(address); /* write register command */
+    (void)SPIWriteRead(val); /* write value */
 
 	CSN_SetVal();								// CSN Low to High ends command
 	WAIT1_Waitus(10); 							//* insert a delay until next command
