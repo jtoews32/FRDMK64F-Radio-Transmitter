@@ -93,13 +93,6 @@ static RPHY_PacketDesc radioRx;
 static uint8_t radioRxBuf[2+32];
 static xQueueHandle RMSG_MsgRxQueue, RMSG_MsgTxQueue;
 
-uint8_t RAPP_SendPayloadDataBlock(uint8_t *appPayload,uint8_t appPayloadSize, uint8_t msgType) {//,
-	//	RNWK_ShortAddrType dstAddr,
-	//	RPHY_FlagsType flags
-
-	return 0;
-}
-
 static uint8_t SPIWriteRead(uint8_t val) {
   	uint8_t ch;
 
