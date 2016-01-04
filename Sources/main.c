@@ -58,23 +58,23 @@ typedef struct {
   uint8_t *rxtx;       /*!< pointer into phyData, start of TX/RX data */
 } RPHY_PacketDesc;
 
-#define RF1_SPI_Enable()                   SM1_Enable()
-#define RF1_SPI_Disable()                  SM1_Disable()
-#define RF1_SPI_SetFastMode()              SM1_SetFastMode()
-#define RF1_SPI_SetSlowMode()              SM1_SetSlowMode()
-#define RF1_SPI_SetShiftClockPolarity(val) (void)SM1_SetShiftClockPolarity(val)
-#define RF1_SPI_SetIdleClockPolarity(val)  (void)SM1_SetIdleClockPolarity(val)
-#define RF1_SPI_GetCharsInTxBuf()          SM1_GetCharsInTxBuf()
-#define RF1_SPI_GetCharsInRxBuf()          SM1_GetCharsInRxBuf()
-#define RF1_SPI_SendChar(ch)               SM1_SendChar(ch)
-#define RF1_SPI_RecvChar(p)                SM1_RecvChar(p)
-#define RF1_SPI_SetBaudRateMode(m)         SM1_SetBaudRateMode(m)
+#define nRFSPI_Enable()                   SM1_Enable()
+#define nRFSPI_Disable()                  SM1_Disable()
+#define nRFSPI_SetFastMode()              SM1_SetFastMode()
+#define nRFSPI_SetSlowMode()              SM1_SetSlowMode()
+#define nRFSPI_SetShiftClockPolarity(val) (void)SM1_SetShiftClockPolarity(val)
+#define nRFSPI_SetIdleClockPolarity(val)  (void)SM1_SetIdleClockPolarity(val)
+#define nRFSPI_GetCharsInTxBuf()          SM1_GetCharsInTxBuf()
+#define nRFSPI_GetCharsInRxBuf()          SM1_GetCharsInRxBuf()
+#define nRFSPI_SendChar(ch)               SM1_SendChar(ch)
+#define nRFSPI_RecvChar(p)                SM1_RecvChar(p)
+#define nRFSPI_SetBaudRateMode(m)         SM1_SetBaudRateMode(m)
 
 
-#define RX_POWERUP()         RF1_WriteRegister(0x00, ((1<<3)|(1<<2))|(1<<1)|(1<<0))
+#define RX_POWERUP()         nRFWriteRegister(0x00, ((1<<3)|(1<<2))|(1<<1)|(1<<0))
 
-// #define RF1_WAIT_US(x)  WAIT1_Waitus(x)          /* wait for the given number of micro-seconds */
-#define RF1_WAIT_MS(x)  WAIT1_Waitms(x)          /* wait for the given number of milli-seconds */
+// #define nRFWAIT_US(x)  WAIT1_Waitus(x)          /* wait for the given number of micro-seconds */
+#define nRFWAIT_MS(x)  WAIT1_Waitms(x)          /* wait for the given number of milli-seconds */
 
 #define RPHY_HEADER_SIZE    (2) /* <flags><size> */
 //#define RPHY_PAYLOAD_SIZE   (RNET_CONFIG_TRANSCEIVER_PAYLOAD_SIZE) /* total number of payload bytes */
@@ -103,15 +103,15 @@ uint8_t RAPP_SendPayloadDataBlock(uint8_t *appPayload,uint8_t appPayloadSize, ui
 static uint8_t SPIWriteRead(uint8_t val) {
   	uint8_t ch;
 
-  	while(RF1_SPI_GetCharsInTxBuf()!=0) {} /* wait until tx is empty */
-  	while(RF1_SPI_SendChar(val)!=ERR_OK) {} /* send character */
-  	while(RF1_SPI_GetCharsInTxBuf()!=0) {} /* wait until data has been sent */
-  	while(RF1_SPI_GetCharsInRxBuf()==0) {} /* wait until we receive data */
-  	while(RF1_SPI_RecvChar(&ch)!=ERR_OK) {} /* get data */
+  	while(nRFSPI_GetCharsInTxBuf()!=0) {} /* wait until tx is empty */
+  	while(nRFSPI_SendChar(val)!=ERR_OK) {} /* send character */
+  	while(nRFSPI_GetCharsInTxBuf()!=0) {} /* wait until data has been sent */
+  	while(nRFSPI_GetCharsInRxBuf()==0) {} /* wait until we receive data */
+  	while(nRFSPI_RecvChar(&ch)!=ERR_OK) {} /* get data */
   	return ch;
 }
 
-uint8_t RF1_ReadRegister(uint8_t reg) {
+uint8_t nRFReadRegister(uint8_t reg) {
 	uint8_t val;
 	CSN_ClrVal();
 	(void) SPIWriteRead(reg);
@@ -121,10 +121,10 @@ uint8_t RF1_ReadRegister(uint8_t reg) {
 	return val;
 }
 
-void RF1_TxPayload(uint8_t *payload, uint8_t payloadSize)
+void nRFTxPayload(uint8_t *payload, uint8_t payloadSize)
 {
-	RF1_Write(0xE1); 									// flush old data
-	RF1_WriteRegisterData(0xA0, payload, payloadSize); // write payload
+	nRFWrite(0xE1); 									// flush old data
+	nRFWriteRegisterData(0xA0, payload, payloadSize); // write payload
 	CE_ClrVal();											// start transmission
 	WAIT1_Waitus(15); 									//* keep signal high for 15 micro-seconds
 	CE_SetVal();  									// back to normal
@@ -138,54 +138,54 @@ static void SPIWriteBuffer(uint8_t *bufOut, uint8_t bufSize) {
 	}
 }
 
-void RF1_WriteRegister(uint8_t reg, uint8_t val) {
+void nRFWriteRegister(uint8_t reg, uint8_t val) {
   	uint8_t status, address = 0x20|reg;
   	CSN_ClrVal();								// CSN High-to-Low Starts Command
 
-  	while(RF1_SPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until tx is empty
-  	while(RF1_SPI_SendChar(address)!=ERR_OK) 	{} 	//* send character
-  	while(RF1_SPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until data has been sent
-  	while(RF1_SPI_GetCharsInRxBuf()==0) 	{} 	//* wait until we receive data
-  	while(RF1_SPI_RecvChar(&status)!=ERR_OK) 	{} 	//* get data
+  	while(nRFSPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until tx is empty
+  	while(nRFSPI_SendChar(address)!=ERR_OK) 	{} 	//* send character
+  	while(nRFSPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until data has been sent
+  	while(nRFSPI_GetCharsInRxBuf()==0) 	{} 	//* wait until we receive data
+  	while(nRFSPI_RecvChar(&status)!=ERR_OK) 	{} 	//* get data
 
-  	while(RF1_SPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until tx is empty
-  	while(RF1_SPI_SendChar(val)!=ERR_OK) 	{} 	//* send character
-  	while(RF1_SPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until data has been sent
-  	while(RF1_SPI_GetCharsInRxBuf()==0) 	{} 	//* wait until we receive data
-  	while(RF1_SPI_RecvChar(&status)!=ERR_OK) 	{} 	//* get data
+  	while(nRFSPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until tx is empty
+  	while(nRFSPI_SendChar(val)!=ERR_OK) 	{} 	//* send character
+  	while(nRFSPI_GetCharsInTxBuf()!=0) 	{} 	//* wait until data has been sent
+  	while(nRFSPI_GetCharsInRxBuf()==0) 	{} 	//* wait until we receive data
+  	while(nRFSPI_RecvChar(&status)!=ERR_OK) 	{} 	//* get data
 
 	CSN_SetVal();								// CSN Low to High ends command
 	WAIT1_Waitus(10); 							//* insert a delay until next command
 }
 
-uint8_t RF1_EnableDynamicPayloadLength(uint8_t pipeMask) {
+uint8_t nRFEnableDynamicPayloadLength(uint8_t pipeMask) {
   /* note: dynamic payload requires EN_DPL and ENAA_Px set for the pipe */
 	if (pipeMask>0x3F) {
 		return ERR_FAULT; /* only pipe 0 to 5 allowed */
 	}
-	RF1_WriteRegister(0x1C, pipeMask); /* write number of RX payload for pipe */
+	nRFWriteRegister(0x1C, pipeMask); /* write number of RX payload for pipe */
 	return ERR_OK;
 }
 
-uint8_t RF1_ReadNofRxPayload(uint8_t *nof)
+uint8_t nRFReadNofRxPayload(uint8_t *nof)
 {
-	*nof = RF1_ReadRegister(0x60); //* read number of RX payload for pipe
+	*nof = nRFReadRegister(0x60); //* read number of RX payload for pipe
 	return ERR_OK;
 }
 
 
-uint8_t RF1_WriteFeature(uint8_t featureMask) {
-	// RF1_FEATURE_EN_DPL|RF1_FEATURE_EN_ACK_PAY|RF1_FEATURE_EN_DYN_PAY
+uint8_t nRFWriteFeature(uint8_t featureMask) {
+	// nRFFEATURE_EN_DPL|nRFFEATURE_EN_ACK_PAY|nRFFEATURE_EN_DYN_PAY
 	if (featureMask>((1<<2)|(1<<1)|(1<<0))) {
 		return ERR_FAULT; /* mismatch of feature mask */
 	}
 	// 0x1D is the feature register. Enabled
-	RF1_WriteRegister(0x1D, featureMask); /* write number of RX payload for pipe */
+	nRFWriteRegister(0x1D, featureMask); /* write number of RX payload for pipe */
 	return ERR_OK;
 }
 
-uint8_t RF1_SetChannel(uint8_t channel) {
-	RF1_WriteRegister(0x05, channel&0x7F); /* set channel */
+uint8_t nRFSetChannel(uint8_t channel) {
+	nRFWriteRegister(0x05, channel&0x7F); /* set channel */
 	return ERR_OK;
 }
 
@@ -197,7 +197,7 @@ static void SPIWriteReadBuffer(uint8_t *bufOut, uint8_t *bufIn, uint8_t bufSize)
   }
 }
 
-void RF1_ReadRegisterData(uint8_t reg, uint8_t *buf, uint8_t bufSize)
+void nRFReadRegisterData(uint8_t reg, uint8_t *buf, uint8_t bufSize)
 {
 	CSN_ClrVal();
 	(void)SPIWriteRead(0x00|reg);
@@ -206,27 +206,27 @@ void RF1_ReadRegisterData(uint8_t reg, uint8_t *buf, uint8_t bufSize)
 	WAIT1_Waitus(10);
 }
 
-void RF1_WriteRegisterData(byte reg, uint8_t *buf, uint8_t bufSize) {
+void nRFWriteRegisterData(byte reg, uint8_t *buf, uint8_t bufSize) {
 	//   100000
 	CSN_ClrVal();
-	(void)SPIWriteRead(0x20|reg); /* not masking registers as it would conflict with RF1_W_TX_PAYLOAD */
+	(void)SPIWriteRead(0x20|reg); /* not masking registers as it would conflict with nRFW_TX_PAYLOAD */
 	SPIWriteBuffer(buf, bufSize);
 	CSN_SetVal();
 	WAIT1_Waitus(10);
 }
 
-void RF1_ResetStatusIRQ(uint8_t flags) {
+void nRFResetStatusIRQ(uint8_t flags) {
 
-	RF1_WriteRegister(0x07, flags); /* reset all IRQ in status register */
+	nRFWriteRegister(0x07, flags); /* reset all IRQ in status register */
 }
 
-uint8_t RF1_EnableAutoAck(uint8_t pipes) {
+uint8_t nRFEnableAutoAck(uint8_t pipes) {
 
-	RF1_WriteRegister(0x01, pipes&0x3F); /* enable auto acknowledge for the given pipes */
+	nRFWriteRegister(0x01, pipes&0x3F); /* enable auto acknowledge for the given pipes */
 	return ERR_OK;
 }
 
-void RF1_Write(uint8_t val) {
+void nRFWrite(uint8_t val) {
 
 	CSN_ClrVal();
 	(void)SPIWriteRead(val);
@@ -234,12 +234,12 @@ void RF1_Write(uint8_t val) {
 	WAIT1_Waitus(10);
 }
 
-uint8_t RF1_GetFifoStatus(uint8_t *status) {
-	*status = RF1_ReadRegister(0x17); /* read FIFO_STATUS register */
+uint8_t nRFGetFifoStatus(uint8_t *status) {
+	*status = nRFReadRegister(0x17); /* read FIFO_STATUS register */
 	return ERR_OK;
 }
 
-uint8_t RF1_GetStatusClrIRQ(void) {
+uint8_t nRFGetStatusClrIRQ(void) {
 	uint8_t status;
 	CSN_ClrVal();
 	status = SPIWriteRead(0x20|0x07);
@@ -249,10 +249,10 @@ uint8_t RF1_GetStatusClrIRQ(void) {
 	return status;
 }
 
-void RF1_RxPayload(uint8_t *payload, uint8_t payloadSize)
+void nRFRxPayload(uint8_t *payload, uint8_t payloadSize)
 {
 	CE_ClrVal(); /* need to disable rx mode during reading RX data */
-	RF1_ReadRegisterData(0x61, payload, payloadSize); /* rx payload */
+	nRFReadRegisterData(0x61, payload, payloadSize); /* rx payload */
 	CE_SetVal(); /* re-enable rx mode */
 }
 
@@ -329,7 +329,7 @@ static uint8_t CheckRx(void) {
 	packet.phyData = &RxDataBuffer[0];
 	packet.phySize = sizeof(RxDataBuffer);
 	packet.rxtx = RPHY_BUF_PAYLOAD_START(packet.phyData);
-	status = RF1_GetStatusClrIRQ();
+	status = nRFGetStatusClrIRQ();
 	hasRx = (status&0x40)!=0;
 
 	if (hasRx) {
@@ -337,12 +337,12 @@ static uint8_t CheckRx(void) {
 
 		uint8_t payloadSize = 0;
 
-		(void)RF1_ReadNofRxPayload(&payloadSize);
+		(void)nRFReadNofRxPayload(&payloadSize);
 		if (payloadSize>32) {
-			RF1_Write(0xE2);
+			nRFWrite(0xE2);
 			return ERR_FAILED;
 		} else {
-			RF1_RxPayload(packet.rxtx, payloadSize);
+			nRFRxPayload(packet.rxtx, payloadSize);
 			RPHY_BUF_SIZE(packet.phyData) = payloadSize;
 		}
 
@@ -383,10 +383,10 @@ static uint8_t CheckRx(void) {
 
 uint8_t RADIO_PowerDown(void) {
 
-  RF1_Write(0xE1); /* flush old data */
-  RF1_Write(0xE2); /* flush old data */
+  nRFWrite(0xE1); /* flush old data */
+  nRFWrite(0xE2); /* flush old data */
 
-  RF1_WriteRegister(0x00, ((1<<3)|(1<<2)) ); //  RF1_WriteRegister(RF1_CONFIG, RF1_CONFIG_SETTINGS)
+  nRFWriteRegister(0x00, ((1<<3)|(1<<2)) ); //  nRFWriteRegister(nRFCONFIG, nRFCONFIG_SETTINGS)
   return ERR_OK;
 }
 
@@ -420,8 +420,8 @@ static uint8_t CheckTx(void) {
       return ERR_DISABLED;
     }
 
-    CE_ClrVal(); 	//   RF1_StopRxTx();
-    RF1_WriteRegister(0x00, ((1<<3)|(1<<2))|(1<<1)|0  );
+    CE_ClrVal(); 	//   nRFStopRxTx();
+    nRFWriteRegister(0x00, ((1<<3)|(1<<2))|(1<<1)|0  );
 
     packet.phyData = &TxDataBuffer[0];
     packet.flags = flags;
@@ -430,9 +430,9 @@ static uint8_t CheckTx(void) {
 //    if (RADIO_isSniffing) {
 //      RPHY_SniffPacket(&packet, TRUE);
 //    }
-//   RF1_TxPayload(packet.rxtx, RPHY_BUF_SIZE(packet.phyData));
-    RF1_Write(0xE1); /* flush old data */
-    RF1_WriteRegisterData(0xA0, packet.rxtx, RPHY_BUF_SIZE(packet.phyData)); /* write payload */
+//   nRFTxPayload(packet.rxtx, RPHY_BUF_SIZE(packet.phyData));
+    nRFWrite(0xE1); /* flush old data */
+    nRFWriteRegisterData(0xA0, packet.rxtx, RPHY_BUF_SIZE(packet.phyData)); /* write payload */
     CE_ClrVal(); /* start transmission */
     WAIT1_Waitus(15); /* keep signal high for 15 micro-seconds */
     CE_SetVal();  /* back to normal */
@@ -446,63 +446,63 @@ static uint8_t CheckTx(void) {
 }
 
 void registerReader() {
-	uint8_t r_config = RF1_ReadRegister(0x00);
-	uint8_t r_shockburst = RF1_ReadRegister(0x01);
-	uint8_t r_rx = RF1_ReadRegister(0x02);
-	uint8_t r_setup = RF1_ReadRegister(0x03);
-	uint8_t r_autoRetransmit = RF1_ReadRegister(0x04);
-	uint8_t r7 = RF1_ReadRegister(0x05);
-	uint8_t r8 = RF1_ReadRegister(0x06);
-	uint8_t r_status = RF1_ReadRegister(0x07);
-	uint8_t r_transmitobserve = RF1_ReadRegister(0x08);
-	uint8_t r10 = RF1_ReadRegister(0x09);
-	uint8_t r_fifo = RF1_ReadRegister(0x17);
-	uint8_t r_dynpd = RF1_ReadRegister(0x1c);
-	uint8_t r_addr_TX = RF1_ReadRegister(0x10);
-	uint8_t r_addr0_RX = RF1_ReadRegister(0x0A);
-	uint8_t r_addr1_RX = RF1_ReadRegister(0x0b);
-	uint8_t r_addr2_RX = RF1_ReadRegister(0x0c);
-	uint8_t r_addr3_RX = RF1_ReadRegister(0x0d);
-	uint8_t r_addr4_RX = RF1_ReadRegister(0x0e);
-	uint8_t r_addr5_RX  = RF1_ReadRegister(0x0f);
-	uint8_t r0 = RF1_ReadRegister(0x11);
-	uint8_t r1 = RF1_ReadRegister(0x12);
-	uint8_t r2 = RF1_ReadRegister(0x13);
-	uint8_t r3 = RF1_ReadRegister(0x14);
-	uint8_t r4 = RF1_ReadRegister(0x16);
-	uint8_t r5 = RF1_ReadRegister(0x18);
-	uint8_t r6 = RF1_ReadRegister(0x19);
+	uint8_t r_config = nRFReadRegister(0x00);
+	uint8_t r_shockburst = nRFReadRegister(0x01);
+	uint8_t r_rx = nRFReadRegister(0x02);
+	uint8_t r_setup = nRFReadRegister(0x03);
+	uint8_t r_autoRetransmit = nRFReadRegister(0x04);
+	uint8_t r7 = nRFReadRegister(0x05);
+	uint8_t r8 = nRFReadRegister(0x06);
+	uint8_t r_status = nRFReadRegister(0x07);
+	uint8_t r_transmitobserve = nRFReadRegister(0x08);
+	uint8_t r10 = nRFReadRegister(0x09);
+	uint8_t r_fifo = nRFReadRegister(0x17);
+	uint8_t r_dynpd = nRFReadRegister(0x1c);
+	uint8_t r_addr_TX = nRFReadRegister(0x10);
+	uint8_t r_addr0_RX = nRFReadRegister(0x0A);
+	uint8_t r_addr1_RX = nRFReadRegister(0x0b);
+	uint8_t r_addr2_RX = nRFReadRegister(0x0c);
+	uint8_t r_addr3_RX = nRFReadRegister(0x0d);
+	uint8_t r_addr4_RX = nRFReadRegister(0x0e);
+	uint8_t r_addr5_RX  = nRFReadRegister(0x0f);
+	uint8_t r0 = nRFReadRegister(0x11);
+	uint8_t r1 = nRFReadRegister(0x12);
+	uint8_t r2 = nRFReadRegister(0x13);
+	uint8_t r3 = nRFReadRegister(0x14);
+	uint8_t r4 = nRFReadRegister(0x16);
+	uint8_t r5 = nRFReadRegister(0x18);
+	uint8_t r6 = nRFReadRegister(0x19);
 	return;
 }
 
 void receive() {
 	CSN_ClrVal();
-	RF1_Write( 0b01100001 ); // rx payload
-	RF1_Write(0b0); //  dummy
-	RF1_Write(0b0);	//  dummy
-	RF1_Write(0b0);	// dummy
+	nRFWrite( 0b01100001 ); // rx payload
+	nRFWrite(0b0); //  dummy
+	nRFWrite(0b0);	//  dummy
+	nRFWrite(0b0);	// dummy
 	CSN_SetVal();
 }
 
 void transmit() {
 	CSN_ClrVal();
-	RF1_Write(0xE1); // flush tx
+	nRFWrite(0xE1); // flush tx
 	CSN_SetVal();
 
 	CSN_ClrVal();
-	RF1_Write( 0b10100000 ); // regWrite( 0x10100000 )  // load TX payload command W_TX_PAYLOAD
-	RF1_Write(0b1); //  byte 1 - mode
-	RF1_Write(0b10);//  byte 2 - pin
-	RF1_Write(0b100);//  btye 3 - value
+	nRFWrite( 0b10100000 ); // regWrite( 0x10100000 )  // load TX payload command W_TX_PAYLOAD
+	nRFWrite(0b1); //  byte 1 - mode
+	nRFWrite(0b10);//  byte 2 - pin
+	nRFWrite(0b100);//  btye 3 - value
 	CSN_SetVal();
 
 	CE_ClrVal(); // CE Low to TX mode
 	WAIT1_Waitms(1); // WAIT1_Waitus(10); // Wait_ms(1) delay 1 millisecond
-	RF1_WriteRegister(0x00, 0b0);  // regWrite(0x00, 0b0); write 0 to bit 0 of config 0x00 reg
+	nRFWriteRegister(0x00, 0b0);  // regWrite(0x00, 0b0); write 0 to bit 0 of config 0x00 reg
 	CE_SetVal();
 
 	WAIT1_Waitms(1); // Wait_ms(1)  delay 1 millisecond
-	RF1_WriteRegister(0x00, 0b1);// regWrite(0x00, 0b1) write 1 to bit 0 of config 0x00 which will go back to RX Mode
+	nRFWriteRegister(0x00, 0b1);// regWrite(0x00, 0b1) write 1 to bit 0 of config 0x00 which will go back to RX Mode
 }
 
 
@@ -535,29 +535,29 @@ void Wireless_Loop(){
 	// CE_SetVal();	// think this is high for rx mode
 	CE_ClrVal();
 	CSN_SetVal(); /* set high when not talking to device */
-	RF1_WriteRegister(0x06, 0b00110  );		// 0x06  -- setup register  write 100110   0dbms  (3<<1) | (1<<5)
+	nRFWriteRegister(0x06, 0b00110  );		// 0x06  -- setup register  write 100110   0dbms  (3<<1) | (1<<5)
 							// (B0100 << 4) | (B1111 << 0)
-	RF1_WriteFeature(  (1<<2)|(1<<1)|(1<<0) ); 										// 0x1D
-	RF1_EnableDynamicPayloadLength(1<<0);     									// 0x1C
-	RF1_SetChannel(0);															// 0x05
+	nRFWriteFeature(  (1<<2)|(1<<1)|(1<<0) ); 										// 0x1D
+	nRFEnableDynamicPayloadLength(1<<0);     									// 0x1C
+	nRFSetChannel(0);															// 0x05
 		// 0 - 127 (actuallu 0 - 83 legally)
 	registerReader();
-	RF1_WriteRegisterData(0x0A, (uint8_t*) RADIO_TADDR, sizeof(RADIO_TADDR));		// 0x0A set TADDR
-	RF1_WriteRegisterData(0x10, (uint8_t*) RADIO_TADDR, sizeof(RADIO_TADDR));		// 0x10 set RADDR
-	RF1_WriteRegister(0x02, 0x01); 												// 0x02
+	nRFWriteRegisterData(0x0A, (uint8_t*) RADIO_TADDR, sizeof(RADIO_TADDR));		// 0x0A set TADDR
+	nRFWriteRegisterData(0x10, (uint8_t*) RADIO_TADDR, sizeof(RADIO_TADDR));		// 0x10 set RADDR
+	nRFWriteRegister(0x02, 0x01); 												// 0x02
 		// pipe enable register.. seems to enable pipe 1
 
-	RF1_ResetStatusIRQ(0x40|0x20|0x10);											// 0x07
-	//RF1_EnableAutoAck(0x01);							// 0x01
+	nRFResetStatusIRQ(0x40|0x20|0x10);											// 0x07
+	//nRFEnableAutoAck(0x01);							// 0x01
 		// because auto ack is enabled receive must be the same as send.
 	registerReader();
-	RF1_WriteRegister(0x04, 0x02|0x0F); 											// 0x04
-	RF1_WriteRegister(0x00, 0b1111);			// 0x00	in transmit or Power up in receiving mode((1<<3)|(1<<2))|(1<<1)|(1<<0)
+	nRFWriteRegister(0x04, 0x02|0x0F); 											// 0x04
+	nRFWriteRegister(0x00, 0b1111);			// 0x00	in transmit or Power up in receiving mode((1<<3)|(1<<2))|(1<<1)|(1<<0)
 		// set the config register, PWR_up, PRIM_PX=1 make a receiver
 		//
-	RF1_GetFifoStatus(&status);
-	RF1_Write(0xE2);											//* flush RX old data
-	RF1_Write(0xE1); 											//* flush TX old data
+	nRFGetFifoStatus(&status);
+	nRFWrite(0xE2);											//* flush RX old data
+	nRFWrite(0xE1); 											//* flush TX old data
 
 	registerReader();
 
@@ -574,13 +574,13 @@ void Wireless_Loop(){
 	// CSN Low
 	// 00010000 .. send 5 dummy bytes
 	// CSN High
-	//RF1_GetFifoStatus(&status);
-	/*	CE_SetVal(); 										// Start RX TX // RF1_StartRxTx(); 		//* Listening for packets  ;
+	//nRFGetFifoStatus(&status);
+	/*	CE_SetVal(); 										// Start RX TX // nRFStartRxTx(); 		//* Listening for packets  ;
 	CE_ClrVal();
-	RF1_Write(0b10100000);
-	RF1_Write(0b10100000);
-	RF1_Write(0b10100000);
-	RF1_Write(0b10100000);
+	nRFWrite(0b10100000);
+	nRFWrite(0b10100000);
+	nRFWrite(0b10100000);
+	nRFWrite(0b10100000);
 	CE_SetVal();*/
 
 
@@ -590,19 +590,19 @@ void Wireless_Loop(){
 
 	//while (1) {	// maybe not be a continuous loop. it should break or something
 
-	CE_ClrVal(); 													// RF1_StopRxTx();	Pull CE From High to Low
-	RF1_WriteRegister(0x00, ((1<<3)|(1<<2)) |(1<<1)|(1<<0)  );		// RX_POWERUP();
-	CE_SetVal();          											/// RF1_StartRxTx() Listening for packets : Pull CE from Low to High
+	CE_ClrVal(); 													// nRFStopRxTx();	Pull CE From High to Low
+	nRFWriteRegister(0x00, ((1<<3)|(1<<2)) |(1<<1)|(1<<0)  );		// RX_POWERUP();
+	CE_SetVal();          											/// nRFStartRxTx() Listening for packets : Pull CE from Low to High
 
 
 	// Part to do the receiving. Should be waiting on interrupt
 	res = CheckRx(); 												//* get message
 	registerReader();
-	RF1_GetFifoStatus(&status);
-	RF1_Write(0xE2);												// Flush RX
+	nRFGetFifoStatus(&status);
+	nRFWrite(0xE2);												// Flush RX
 	res = CheckTx();
 	registerReader();
-	RF1_GetStatusClrIRQ();
+	nRFGetStatusClrIRQ();
 	//}
 }
 
