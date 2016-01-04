@@ -70,11 +70,7 @@ typedef struct {
 #define nRFSPI_RecvChar(p)                SM1_RecvChar(p)
 #define nRFSPI_SetBaudRateMode(m)         SM1_SetBaudRateMode(m)
 
-
 #define RX_POWERUP()         nRFWriteRegister(0x00, ((1<<3)|(1<<2))|(1<<1)|(1<<0))
-
-// #define nRFWAIT_US(x)  WAIT1_Waitus(x)          /* wait for the given number of micro-seconds */
-#define nRFWAIT_MS(x)  WAIT1_Waitms(x)          /* wait for the given number of milli-seconds */
 
 #define RPHY_HEADER_SIZE    (2) /* <flags><size> */
 //#define RPHY_PAYLOAD_SIZE   (RNET_CONFIG_TRANSCEIVER_PAYLOAD_SIZE) /* total number of payload bytes */
@@ -131,17 +127,13 @@ uint8_t nRFReadRegister(uint8_t reg) {
 	return val;
 }
 
-void nRFTxPayload(uint8_t *payload, uint8_t payloadSize)
-{
+void nRFTxPayload(uint8_t *payload, uint8_t payloadSize) {
 	nRFWrite(0xE1); 									// flush old data
 	nRFWriteRegisterData(0xA0, payload, payloadSize); // write payload
 	CE_ClrVal();											// start transmission
 	WAIT1_Waitus(15); 									//* keep signal high for 15 micro-seconds
 	CE_SetVal();  									// back to normal
 }
-
-
-
 
 void nRFWriteRegister(uint8_t reg, uint8_t val) {
   	uint8_t address = 0x20|reg;		// this will make it so it writes.. (not reads)
@@ -168,7 +160,6 @@ uint8_t nRFReadNofRxPayload(uint8_t *nof) {
 	return ERR_OK;
 }
 
-
 uint8_t nRFWriteFeature(uint8_t featureMask) {
 	// nRFFEATURE_EN_DPL|nRFFEATURE_EN_ACK_PAY|nRFFEATURE_EN_DYN_PAY
 	if (featureMask>((1<<2)|(1<<1)|(1<<0))) {
@@ -183,7 +174,6 @@ uint8_t nRFSetChannel(uint8_t channel) {
 	nRFWriteRegister(0x05, channel&0x7F); /* set channel */
 	return ERR_OK;
 }
-
 
 void nRFReadRegisterData(uint8_t reg, uint8_t *buf, uint8_t bufSize)
 {
@@ -204,18 +194,15 @@ void nRFWriteRegisterData(byte reg, uint8_t *buf, uint8_t bufSize) {
 }
 
 void nRFResetStatusIRQ(uint8_t flags) {
-
 	nRFWriteRegister(0x07, flags); /* reset all IRQ in status register */
 }
 
 uint8_t nRFEnableAutoAck(uint8_t pipes) {
-
 	nRFWriteRegister(0x01, pipes&0x3F); /* enable auto acknowledge for the given pipes */
 	return ERR_OK;
 }
 
 void nRFWrite(uint8_t val) {
-
 	CSN_ClrVal();
 	(void)SPIWriteRead(val);
 	CSN_SetVal();
@@ -237,28 +224,22 @@ uint8_t nRFGetStatusClrIRQ(void) {
 	return status;
 }
 
-void nRFRxPayload(uint8_t *payload, uint8_t payloadSize)
-{
+void nRFRxPayload(uint8_t *payload, uint8_t payloadSize) {
 	CE_ClrVal(); /* need to disable rx mode during reading RX data */
 	nRFReadRegisterData(0x61, payload, payloadSize); /* rx payload */
 	CE_SetVal(); /* re-enable rx mode */
 }
 
-
 static portTASK_FUNCTION(RNetTask, pvParameters) {
 	uint32_t cntr;
 	uint8_t msgCntr;
 	(void)pvParameters;
-  /*
-  if (RAPP_SetThisNodeAddr(RNWK_ADDR_BROADCAST)!=ERR_OK) {
-    for(;;);
-  }*/
 
 	cntr = 0; /* initialize LED counter */
 	msgCntr = 0; /* initialize message counter */
- /// appState = RNETA_INITIAL; /* initialize state machine state */
+
 	for(;;) {
-		Wireless_Loop();
+		Radio_Loop();
 
 		// Process(); /* process state machine */
 
@@ -337,15 +318,14 @@ static uint8_t CheckRx(void) {
 	}
 	if (hasRxData) {
 
-   BaseType_t qRes = FRTOS1_xQueueSendToBack(RMSG_MsgRxQueue, packet.phyData, 200/portTICK_RATE_MS);
+		BaseType_t qRes = FRTOS1_xQueueSendToBack(RMSG_MsgRxQueue, packet.phyData, 200/portTICK_RATE_MS);
 
-	int msgQueueTXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgRxQueue);
-	int msgQueueRXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgTxQueue);
+		if (qRes!=pdTRUE) {
+			res = ERR_BUSY;
+		}
 
-
-   if (qRes!=pdTRUE) {
-     res = ERR_BUSY;
-   }
+		// int msgQueueTXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgRxQueue);
+		// int msgQueueRXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgTxQueue);
 
    // } else {
     //  qRes = FRTOS1_xQueueSendToFront(RMSG_MsgRxQueue, buf, RMSG_QUEUE_PUT_WAIT);
@@ -370,7 +350,6 @@ static uint8_t CheckRx(void) {
 
 
 uint8_t RADIO_PowerDown(void) {
-
   nRFWrite(0xE1); /* flush old data */
   nRFWrite(0xE2); /* flush old data */
 
@@ -379,7 +358,6 @@ uint8_t RADIO_PowerDown(void) {
 }
 
 uint8_t RMSG_GetTxMsg(uint8_t *buf, size_t bufSize) {
-
 	int msgQueueTXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgRxQueue);
 	int msgQueueRXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgTxQueue);
 
@@ -493,10 +471,7 @@ void transmit() {
 	nRFWriteRegister(0x00, 0b1);// regWrite(0x00, 0b1) write 1 to bit 0 of config 0x00 which will go back to RX Mode
 }
 
-
-
-// (2+32)
-void Wireless_Loop(){
+void Radio_Loop(){
 
 	uint8_t status, res;
 	static const uint8_t RADIO_TADDR[5] = {0x11, 0x22, 0x33, 0x44, 0x55};
