@@ -88,7 +88,6 @@ typedef struct {
 #define RPHY_BUF_SIZE(phy)                ((phy)[RPHY_BUF_IDX_SIZE])
 #define RPHY_BUF_PAYLOAD_START(phy)       ((phy)+RPHY_HEADER_SIZE)
 
-
 static RPHY_PacketDesc radioRx;
 static uint8_t radioRxBuf[2+32];
 static xQueueHandle RMSG_MsgRxQueue, RMSG_MsgTxQueue;
@@ -103,6 +102,24 @@ static uint8_t SPIWriteRead(uint8_t val) {
   	while(nRFSPI_RecvChar(&ch)!=ERR_OK) {} /* get data */
   	return ch;
 }
+
+static void SPIWriteReadBuffer(uint8_t *bufOut, uint8_t *bufIn, uint8_t bufSize) {
+  uint8_t i;
+
+  for(i=0;i<bufSize;i++) {
+    bufIn[i] = SPIWriteRead(bufOut[i]);
+  }
+}
+
+static void SPIWriteBuffer(uint8_t *bufOut, uint8_t bufSize) {
+	uint8_t i;
+
+	for(i=0;i<bufSize;i++) {
+		(void)SPIWriteRead(bufOut[i]);
+	}
+}
+
+
 
 uint8_t nRFReadRegister(uint8_t reg) {
 	uint8_t val;
@@ -123,13 +140,8 @@ void nRFTxPayload(uint8_t *payload, uint8_t payloadSize)
 	CE_SetVal();  									// back to normal
 }
 
-static void SPIWriteBuffer(uint8_t *bufOut, uint8_t bufSize) {
-	uint8_t i;
 
-	for(i=0;i<bufSize;i++) {
-		(void)SPIWriteRead(bufOut[i]);
-	}
-}
+
 
 void nRFWriteRegister(uint8_t reg, uint8_t val) {
   	uint8_t address = 0x20|reg;		// this will make it so it writes.. (not reads)
@@ -151,8 +163,7 @@ uint8_t nRFEnableDynamicPayloadLength(uint8_t pipeMask) {
 	return ERR_OK;
 }
 
-uint8_t nRFReadNofRxPayload(uint8_t *nof)
-{
+uint8_t nRFReadNofRxPayload(uint8_t *nof) {
 	*nof = nRFReadRegister(0x60); //* read number of RX payload for pipe
 	return ERR_OK;
 }
@@ -173,13 +184,6 @@ uint8_t nRFSetChannel(uint8_t channel) {
 	return ERR_OK;
 }
 
-static void SPIWriteReadBuffer(uint8_t *bufOut, uint8_t *bufIn, uint8_t bufSize) {
-  uint8_t i;
-
-  for(i=0;i<bufSize;i++) {
-    bufIn[i] = SPIWriteRead(bufOut[i]);
-  }
-}
 
 void nRFReadRegisterData(uint8_t reg, uint8_t *buf, uint8_t bufSize)
 {
