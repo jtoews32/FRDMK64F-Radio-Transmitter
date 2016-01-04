@@ -86,7 +86,7 @@ typedef struct {
 
 static RPHY_PacketDesc radioRx;
 static uint8_t radioRxBuf[2+32];
-static xQueueHandle RMSG_MsgRxQueue, RMSG_MsgTxQueue;
+static xQueueHandle MsgRxQueueHandle, MsgTxQueueHandle;
 
 static uint8_t SPIWriteRead(uint8_t val) {
 	uint8_t ch;
@@ -243,8 +243,6 @@ static portTASK_FUNCTION(RNetTask, pvParameters) {
 	for (;;) {
 		Radio_Loop();
 
-		// Process(); /* process state machine */
-
 		cntr++;
 		if (cntr == 100) { /* with an RTOS 10 ms/100 Hz tick rate, this is every second */
 			//LED3_On(); /* blink blue LED for 20 ms */
@@ -291,7 +289,7 @@ static uint8_t CheckRx(void) {
 	}
 	if (hasRxData) {
 
-		BaseType_t qRes = FRTOS1_xQueueSendToBack(RMSG_MsgRxQueue,
+		BaseType_t qRes = FRTOS1_xQueueSendToBack(MsgRxQueueHandle,
 				packet.phyData, 200/portTICK_RATE_MS);
 
 		if (qRes != pdTRUE) {
@@ -299,8 +297,6 @@ static uint8_t CheckRx(void) {
 		}
 
 		// int msgQueueTXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgRxQueue);
-		// int msgQueueRXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgTxQueue);
-
 		//  qRes = FRTOS1_xQueueSendToFront(RMSG_MsgRxQueue, buf, RMSG_QUEUE_PUT_WAIT);
 
 	} else {
@@ -319,14 +315,14 @@ uint8_t RADIO_PowerDown(void) {
 }
 
 uint8_t RMSG_GetTxMsg(uint8_t *buf, size_t bufSize) {
-	int msgQueueTXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgRxQueue);
-	int msgQueueRXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgTxQueue);
+	// int msgQueueTXamnt = FRTOS1_uxQueueMessagesWaiting(MsgRxQueueHandle);
+	// 1int msgQueueRXamnt = FRTOS1_uxQueueMessagesWaiting(MsgTxQueueHandle);
 
 	if (bufSize < (2 + 32)) {
 		return ERR_OVERFLOW;
 	}
 
-	if (FRTOS1_xQueueReceive(RMSG_MsgTxQueue, buf, 0) == pdPASS) {
+	if (FRTOS1_xQueueReceive(MsgTxQueueHandle, buf, 0) == pdPASS) {
 		/* received message from queue */
 		return ERR_OK;
 	}
@@ -449,14 +445,6 @@ void Radio_Loop() {
 		FRTOS1_vTaskDelay(xTime);
 	}
 
-	///CSN_SetVal();
-	//CSN_ClrVal();
-	//registerReader();
-	// if the device is a transmitter CE is always low accept when the transmit happens
-	//
-	//
-	// CE_ClrVal();   /* CE high: do not send or receive data */
-	// CE_SetVal();	// think this is high for rx mode
 	CE_ClrVal();
 	CSN_SetVal(); /* set high when not talking to device */
 	nRFWriteRegister(0x06, 0b00110);// 0x06  -- setup register  write 100110   0dbms  (3<<1) | (1<<5)
@@ -526,14 +514,14 @@ void Radio_Loop() {
 
 void Wireless_Init(void) {
 
-	RMSG_MsgRxQueue = FRTOS1_xQueueCreate(10, sizeof(struct AMessage *));
-	if (RMSG_MsgRxQueue == NULL) { /* queue creation failed! */
+	MsgRxQueueHandle = FRTOS1_xQueueCreate(10, sizeof(struct AMessage *));
+	if (MsgRxQueueHandle == NULL) { /* queue creation failed! */
 		for (;;) {
 		} /* not enough memory? */
 	}
 
-	RMSG_MsgTxQueue = FRTOS1_xQueueCreate(10, sizeof(struct AMessage *));
-	if (RMSG_MsgTxQueue == NULL) { /* queue creation failed! */
+	MsgTxQueueHandle = FRTOS1_xQueueCreate(10, sizeof(struct AMessage *));
+	if (MsgTxQueueHandle == NULL) { /* queue creation failed! */
 		for (;;) {
 		} /* not enough memory? */
 	}
