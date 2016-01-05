@@ -51,9 +51,6 @@
 
 #include "Packet.h"
 
-
-
-
 #define nRFSPI_Enable()                   SM1_Enable()
 #define nRFSPI_Disable()                  SM1_Disable()
 #define nRFSPI_SetFastMode()              SM1_SetFastMode()
@@ -69,8 +66,6 @@
 #define RX_POWERUP()         nRFWriteRegister(0x00, ((1<<3)|(1<<2))|(1<<1)|(1<<0))
 
 #define RPHY_HEADER_SIZE    (2) /* <flags><size> */
-//#define RPHY_PAYLOAD_SIZE   (RNET_CONFIG_TRANSCEIVER_PAYLOAD_SIZE) /* total number of payload bytes */
-//#define RPHY_BUFFER_SIZE    (RPHY_HEADER_SIZE+RPHY_PAYLOAD_SIZE) /* <size><phy payload> */
 
 #define RPHY_BUF_IDX_FLAGS                (0) /* <flags> index */
 #define RPHY_BUF_IDX_SIZE                 (1) /* <size> index */
@@ -81,11 +76,8 @@
 #define RPHY_BUF_PAYLOAD_START(phy)       ((phy)+RPHY_HEADER_SIZE)
 
 static PacketDesc radioRx;
-static uint8_t radioRxBuf[2+32];
+static uint8_t 	radioRxBuf[2+32];
 static xQueueHandle MsgRxQueueHandle, MsgTxQueueHandle;
-
-
-
 
 
 static uint8_t SPIWriteRead(uint8_t val) {
@@ -120,6 +112,8 @@ static void SPIWriteBuffer(uint8_t *bufOut, uint8_t bufSize) {
 	}
 }
 
+
+
 uint8_t nRFReadRegister(uint8_t reg) {
 	uint8_t val;
 	CSN_ClrVal();
@@ -128,14 +122,6 @@ uint8_t nRFReadRegister(uint8_t reg) {
 	CSN_SetVal();
 	WAIT1_Waitus(10);
 	return val;
-}
-
-void nRFTxPayload(uint8_t *payload, uint8_t payloadSize) {
-	nRFWrite(0xE1); 									// flush old data
-	nRFWriteRegisterData(0xA0, payload, payloadSize); // write payload
-	CE_ClrVal();										// start transmission
-	WAIT1_Waitus(15); 				//* keep signal high for 15 micro-seconds
-	CE_SetVal();  									// back to normal
 }
 
 void nRFWriteRegister(uint8_t reg, uint8_t val) {
@@ -147,6 +133,38 @@ void nRFWriteRegister(uint8_t reg, uint8_t val) {
 
 	CSN_SetVal();								// CSN Low to High ends command
 	WAIT1_Waitus(10); 					//* insert a delay until next command
+}
+
+void nRFWrite(uint8_t val) {
+	CSN_ClrVal();
+	(void) SPIWriteRead(val);
+	CSN_SetVal();
+	WAIT1_Waitus(10);
+}
+
+void nRFReadRegisterData(uint8_t reg, uint8_t *buf, uint8_t bufSize) {
+	CSN_ClrVal();
+	(void) SPIWriteRead(0x00 | reg);
+	SPIWriteReadBuffer(buf, buf, bufSize);
+	CSN_SetVal();
+	WAIT1_Waitus(10);
+}
+
+void nRFWriteRegisterData(byte reg, uint8_t *buf, uint8_t bufSize) {
+	//   100000
+	CSN_ClrVal();
+	(void) SPIWriteRead(0x20 | reg); /* not masking registers as it would conflict with nRFW_TX_PAYLOAD */
+	SPIWriteBuffer(buf, bufSize);
+	CSN_SetVal();
+	WAIT1_Waitus(10);
+}
+
+void nRFTxPayload(uint8_t *payload, uint8_t payloadSize) {
+	nRFWrite(0xE1); 									// flush old data
+	nRFWriteRegisterData(0xA0, payload, payloadSize); // write payload
+	CE_ClrVal();										// start transmission
+	WAIT1_Waitus(15); 				//* keep signal high for 15 micro-seconds
+	CE_SetVal();  									// back to normal
 }
 
 uint8_t nRFEnableDynamicPayloadLength(uint8_t pipeMask) {
@@ -178,23 +196,6 @@ uint8_t nRFSetChannel(uint8_t channel) {
 	return ERR_OK;
 }
 
-void nRFReadRegisterData(uint8_t reg, uint8_t *buf, uint8_t bufSize) {
-	CSN_ClrVal();
-	(void) SPIWriteRead(0x00 | reg);
-	SPIWriteReadBuffer(buf, buf, bufSize);
-	CSN_SetVal();
-	WAIT1_Waitus(10);
-}
-
-void nRFWriteRegisterData(byte reg, uint8_t *buf, uint8_t bufSize) {
-	//   100000
-	CSN_ClrVal();
-	(void) SPIWriteRead(0x20 | reg); /* not masking registers as it would conflict with nRFW_TX_PAYLOAD */
-	SPIWriteBuffer(buf, bufSize);
-	CSN_SetVal();
-	WAIT1_Waitus(10);
-}
-
 void nRFResetStatusIRQ(uint8_t flags) {
 	nRFWriteRegister(0x07, flags); /* reset all IRQ in status register */
 }
@@ -202,13 +203,6 @@ void nRFResetStatusIRQ(uint8_t flags) {
 uint8_t nRFEnableAutoAck(uint8_t pipes) {
 	nRFWriteRegister(0x01, pipes & 0x3F); /* enable auto acknowledge for the given pipes */
 	return ERR_OK;
-}
-
-void nRFWrite(uint8_t val) {
-	CSN_ClrVal();
-	(void) SPIWriteRead(val);
-	CSN_SetVal();
-	WAIT1_Waitus(10);
 }
 
 uint8_t nRFGetFifoStatus(uint8_t *status) {
@@ -231,6 +225,8 @@ void nRFRxPayload(uint8_t *payload, uint8_t payloadSize) {
 	nRFReadRegisterData(0x61, payload, payloadSize); /* rx payload */
 	CE_SetVal(); /* re-enable rx mode */
 }
+
+
 
 static portTASK_FUNCTION(RNetTask, pvParameters) {
 	uint32_t cntr;
@@ -314,7 +310,7 @@ uint8_t RADIO_PowerDown(void) {
 	return ERR_OK;
 }
 
-uint8_t RMSG_GetTxMsg(uint8_t *buf, size_t bufSize) {
+uint8_t GetTxMsg(uint8_t *buf, size_t bufSize) {
 	// int msgQueueTXamnt = FRTOS1_uxQueueMessagesWaiting(MsgRxQueueHandle);
 	// 1int msgQueueRXamnt = FRTOS1_uxQueueMessagesWaiting(MsgTxQueueHandle);
 
@@ -335,7 +331,7 @@ static uint8_t CheckTx(void) {
 	uint8_t TxDataBuffer[2 + 32]; //RPHY_BUFFER_SIZE];
 	FlagsType flags;
 
-	if (RMSG_GetTxMsg(TxDataBuffer, sizeof(TxDataBuffer)) == ERR_OK) {
+	if (GetTxMsg(TxDataBuffer, sizeof(TxDataBuffer)) == ERR_OK) {
 		flags = RPHY_BUF_FLAGS(TxDataBuffer);
 		if (flags & (1 << 2)) {
 
