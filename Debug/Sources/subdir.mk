@@ -5,14 +5,17 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../Sources/Events.c \
+../Sources/Packet.c \
 ../Sources/main.c 
 
 OBJS += \
 ./Sources/Events.o \
+./Sources/Packet.o \
 ./Sources/main.o 
 
 C_DEPS += \
 ./Sources/Events.d \
+./Sources/Packet.d \
 ./Sources/main.d 
 
 
