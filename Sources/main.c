@@ -125,14 +125,14 @@ uint8_t nRFReadRegister(uint8_t reg) {
 }
 
 void nRFWriteRegister(uint8_t reg, uint8_t val) {
-	uint8_t address = 0x20 | reg;// this will make it so it writes.. (not reads)
+	uint8_t address = 0x20 |reg;			// this will make it so it writes.. (not reads)
 	CSN_ClrVal();							// CSN High-to-Low Starts Command
 
-	(void) SPIWriteRead(address); /* write register command */
-	(void) SPIWriteRead(val); /* write value */
+	(void) SPIWriteRead(address); 			//* write register command
+	(void) SPIWriteRead(val); 				//* write value
 
-	CSN_SetVal();								// CSN Low to High ends command
-	WAIT1_Waitus(10); 					//* insert a delay until next command
+	CSN_SetVal();							// CSN Low to High ends command
+	WAIT1_Waitus(10); 						//* insert a delay until next command
 }
 
 void nRFWrite(uint8_t val) {
@@ -151,9 +151,8 @@ void nRFReadRegisterData(uint8_t reg, uint8_t *buf, uint8_t bufSize) {
 }
 
 void nRFWriteRegisterData(byte reg, uint8_t *buf, uint8_t bufSize) {
-	//   100000
 	CSN_ClrVal();
-	(void) SPIWriteRead(0x20 | reg); /* not masking registers as it would conflict with nRFW_TX_PAYLOAD */
+	(void) SPIWriteRead(0x20 | reg); 		/* not masking registers as it would conflict with nRFW_TX_PAYLOAD */
 	SPIWriteBuffer(buf, bufSize);
 	CSN_SetVal();
 	WAIT1_Waitus(10);
@@ -161,10 +160,10 @@ void nRFWriteRegisterData(byte reg, uint8_t *buf, uint8_t bufSize) {
 
 void nRFTxPayload(uint8_t *payload, uint8_t payloadSize) {
 	nRFWrite(0xE1); 									// flush old data
-	nRFWriteRegisterData(0xA0, payload, payloadSize); // write payload
+	nRFWriteRegisterData(0xA0, payload, payloadSize); 	// write payload
 	CE_ClrVal();										// start transmission
-	WAIT1_Waitus(15); 				//* keep signal high for 15 micro-seconds
-	CE_SetVal();  									// back to normal
+	WAIT1_Waitus(15); 									//* keep signal high for 15 micro-seconds
+	CE_SetVal();  										// back to normal
 }
 
 uint8_t nRFEnableDynamicPayloadLength(uint8_t pipeMask) {
@@ -228,30 +227,6 @@ void nRFRxPayload(uint8_t *payload, uint8_t payloadSize) {
 
 
 
-static portTASK_FUNCTION(RNetTask, pvParameters) {
-	uint32_t cntr;
-	uint8_t msgCntr;
-	(void) pvParameters;
-
-	cntr = 0; /* initialize LED counter */
-	msgCntr = 0; /* initialize message counter */
-
-	for (;;) {
-		Radio_Loop();
-
-		cntr++;
-		if (cntr == 100) { /* with an RTOS 10 ms/100 Hz tick rate, this is every second */
-			//LED3_On(); /* blink blue LED for 20 ms */
-			// RAPP_SendPayloadDataBlock(&msgCntr, sizeof(msgCntr), RAPP_MSG_TYPE_PING, RNWK_ADDR_BROADCAST, RPHY_PACKET_FLAGS_NONE);
-
-			msgCntr++;
-			cntr = 0;
-			FRTOS1_vTaskDelay(20/portTICK_RATE_MS);
-			// LED3_Off(); /* blink	 blue LED */
-		}
-		FRTOS1_vTaskDelay(10/portTICK_RATE_MS);
-	} /* for */
-}
 
 static uint8_t CheckRx(void) {
 	uint8_t res = ERR_OK;
@@ -424,14 +399,10 @@ void transmit() {
 	nRFWriteRegister(0x00, 0b1); // regWrite(0x00, 0b1) write 1 to bit 0 of config 0x00 which will go back to RX Mode
 }
 
-void Radio_Loop() {
+void radioProcessor() {
 
 	uint8_t status, res;
 	static const uint8_t RADIO_TADDR[5] = { 0x11, 0x22, 0x33, 0x44, 0x55 };
-	uint8_t byte1 = (3 << 1) | (1 << 5);
-	uint8_t byte2 = (1 << 2) | (1 << 1) | (1 << 0);
-	uint8_t byte3 = 0x40 | 0x20 | 0x10;
-	uint8_t byte4 = ((1 << 3) | (1 << 2)) | (1 << 1) | (1 << 0);
 
 	portTickType xTime = FRTOS1_xTaskGetTickCount();
 
@@ -508,7 +479,30 @@ void Radio_Loop() {
 	//}
 }
 
-void Wireless_Init(void) {
+
+static portTASK_FUNCTION(RNetTask, pvParameters) {
+	uint32_t cntr = 0;
+	uint8_t msgCntr = 0;
+	(void) pvParameters;
+
+	for (;;) {
+		radioProcessor();
+
+		cntr++;
+		if (cntr == 100) { /* with an RTOS 10 ms/100 Hz tick rate, this is every second */
+			//LED3_On(); /* blink blue LED for 20 ms */
+			// RAPP_SendPayloadDataBlock(&msgCntr, sizeof(msgCntr), RAPP_MSG_TYPE_PING, RNWK_ADDR_BROADCAST, RPHY_PACKET_FLAGS_NONE);
+
+			msgCntr++;
+			cntr = 0;
+			FRTOS1_vTaskDelay(20/portTICK_RATE_MS);
+			// LED3_Off(); /* blink	 blue LED */
+		}
+		FRTOS1_vTaskDelay(10/portTICK_RATE_MS);
+	} /* for */
+}
+
+void wirelessInit(void) {
 
 	MsgRxQueueHandle = FRTOS1_xQueueCreate(10, sizeof(struct AMessage *));
 	if (MsgRxQueueHandle == NULL) { /* queue creation failed! */
@@ -537,7 +531,6 @@ void Wireless_Init(void) {
 	}
 }
 
-
 /*lint -save  -e970 Disable MISRA rule (6.3) checking. */
 int main(void)
 /*lint -restore Enable MISRA rule (6.3) checking. */
@@ -549,7 +542,7 @@ int main(void)
   /*** End of Processor Expert internal initialization.                    ***/
 
   /* Write your code here */
-  Wireless_Init();
+  wirelessInit();
 
   /*** Don't write any code pass this line, or it will be deleted during code generation. ***/
   /*** RTOS startup code. Macro PEX_RTOS_START is defined by the RTOS component. DON'T MODIFY THIS CODE!!! ***/
