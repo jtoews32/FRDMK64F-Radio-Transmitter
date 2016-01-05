@@ -114,6 +114,33 @@ static void SPIWriteBuffer(uint8_t *bufOut, uint8_t bufSize) {
 
 
 
+uint8_t* TXAddress() {
+	uint8_t val;
+	CSN_ClrVal();
+	(void) SPIWriteRead(0x10);
+	val = SPIWriteRead(0b00000000);
+	val = SPIWriteRead(0b00000000);
+	val = SPIWriteRead(0b00000000);
+	val = SPIWriteRead(0b00000000);
+	CSN_SetVal();
+	WAIT1_Waitus(10);
+
+	// CSN Low
+	// 00010000 .. send 5 dummy bytes
+	// CSN High
+	//nRFGetFifoStatus(&status);
+	/*	CE_SetVal(); 										// Start RX TX // nRFStartRxTx(); 		//* Listening for packets  ;
+	 CE_ClrVal();
+	 nRFWrite(0b10100000);
+	 nRFWrite(0b10100000);
+	 nRFWrite(0b10100000);
+	 nRFWrite(0b10100000);
+	 CE_SetVal();*/
+	uint8_t addr[4];
+	return addr;
+}
+
+
 uint8_t nRFReadRegister(uint8_t reg) {
 	uint8_t val;
 	CSN_ClrVal();
@@ -167,8 +194,8 @@ void nRFTxPayload(uint8_t *payload, uint8_t payloadSize) {
 }
 
 uint8_t nRFEnableDynamicPayloadLength(uint8_t pipeMask) {
-	/* note: dynamic payload requires EN_DPL and ENAA_Px set for the pipe */
-	if (pipeMask > 0x3F) {
+
+	if (pipeMask > 0x3F) {  	/* note: dynamic payload requires EN_DPL and ENAA_Px set for the pipe */
 		return ERR_FAULT; /* only pipe 0 to 5 allowed */
 	}
 	nRFWriteRegister(0x1C, pipeMask); /* write number of RX payload for pipe */
@@ -226,8 +253,6 @@ void nRFRxPayload(uint8_t *payload, uint8_t payloadSize) {
 }
 
 
-
-
 static uint8_t CheckRx(void) {
 	uint8_t res = ERR_OK;
 	uint8_t RxDataBuffer[2 + 32];
@@ -269,11 +294,9 @@ static uint8_t CheckRx(void) {
 
 		// int msgQueueTXamnt = FRTOS1_uxQueueMessagesWaiting(RMSG_MsgRxQueue);
 		//  qRes = FRTOS1_xQueueSendToFront(RMSG_MsgRxQueue, buf, RMSG_QUEUE_PUT_WAIT);
-
 	} else {
 		res = ERR_RXEMPTY;
 	}
-
 	return res;
 }
 
@@ -287,14 +310,12 @@ uint8_t RADIO_PowerDown(void) {
 
 uint8_t GetTxMsg(uint8_t *buf, size_t bufSize) {
 	// int msgQueueTXamnt = FRTOS1_uxQueueMessagesWaiting(MsgRxQueueHandle);
-	// 1int msgQueueRXamnt = FRTOS1_uxQueueMessagesWaiting(MsgTxQueueHandle);
 
 	if (bufSize < (2 + 32)) {
 		return ERR_OVERFLOW;
 	}
 
 	if (FRTOS1_xQueueReceive(MsgTxQueueHandle, buf, 0) == pdPASS) {
-		/* received message from queue */
 		return ERR_OK;
 	}
 	return ERR_RXEMPTY;
@@ -420,7 +441,7 @@ void radioProcessor() {
 	nRFEnableDynamicPayloadLength(1 << 0);     							// 0x1C
 	nRFSetChannel(0);													// 0x05
 	// 0 - 127 (actuallu 0 - 83 legally)
-	registerReader();
+
 	nRFWriteRegisterData(0x0A, (uint8_t*) RADIO_TADDR, sizeof(RADIO_TADDR));// 0x0A set TADDR
 	nRFWriteRegisterData(0x10, (uint8_t*) RADIO_TADDR, sizeof(RADIO_TADDR));// 0x10 set RADDR
 	nRFWriteRegister(0x02, 0x01); 										// 0x02
@@ -429,7 +450,7 @@ void radioProcessor() {
 	nRFResetStatusIRQ(0x40 | 0x20 | 0x10);								// 0x07
 	//nRFEnableAutoAck(0x01);							// 0x01
 	// because auto ack is enabled receive must be the same as send.
-	registerReader();
+
 	nRFWriteRegister(0x04, 0x02 | 0x0F); 								// 0x04
 	nRFWriteRegister(0x00, 0b1111);	// 0x00	in transmit or Power up in receiving mode((1<<3)|(1<<2))|(1<<1)|(1<<0)
 	// set the config register, PWR_up, PRIM_PX=1 make a receiver
@@ -437,28 +458,6 @@ void radioProcessor() {
 	nRFGetFifoStatus(&status);
 	nRFWrite(0xE2);										//* flush RX old data
 	nRFWrite(0xE1); 									//* flush TX old data
-
-	registerReader();
-
-	CSN_ClrVal();
-	(void) SPIWriteRead(0x10);
-//	val = SPIWriteRead(0b00000000);
-	//val = SPIWriteRead(0b00000000);
-//	val = SPIWriteRead(0b00000000);
-	CSN_SetVal();
-	WAIT1_Waitus(10);
-
-	// CSN Low
-	// 00010000 .. send 5 dummy bytes
-	// CSN High
-	//nRFGetFifoStatus(&status);
-	/*	CE_SetVal(); 										// Start RX TX // nRFStartRxTx(); 		//* Listening for packets  ;
-	 CE_ClrVal();
-	 nRFWrite(0b10100000);
-	 nRFWrite(0b10100000);
-	 nRFWrite(0b10100000);
-	 nRFWrite(0b10100000);
-	 CE_SetVal();*/
 
 //	radioRx.phyData = &radioRxBuf[0];
 //	radioRx.phySize = sizeof(radioRxBuf);
@@ -470,13 +469,12 @@ void radioProcessor() {
 
 	// Part to do the receiving. Should be waiting on interrupt
 	res = CheckRx(); 											//* get message
-	registerReader();
+
 	nRFGetFifoStatus(&status);
 	nRFWrite(0xE2);												// Flush RX
 	res = CheckTx();
-	registerReader();
+
 	nRFGetStatusClrIRQ();
-	//}
 }
 
 
