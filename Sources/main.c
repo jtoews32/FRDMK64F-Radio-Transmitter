@@ -468,13 +468,13 @@ static portTASK_FUNCTION(RNetTask, pvParameters) {
 
 void wirelessInit(void) {
 
-	MsgRxQueueHandle = FRTOS1_xQueueCreate(10, sizeof(struct AMessage *));
+	MsgRxQueueHandle = FRTOS1_xQueueCreate(10, sizeof( struct PacketDesc * ) );
 	if (MsgRxQueueHandle == NULL) { /* queue creation failed! */
 		for (;;) {
 		} /* not enough memory? */
 	}
 
-	MsgTxQueueHandle = FRTOS1_xQueueCreate(10, sizeof(struct AMessage *));
+	MsgTxQueueHandle = FRTOS1_xQueueCreate(10, sizeof( struct PacketDesc * ) );
 	if (MsgTxQueueHandle == NULL) { /* queue creation failed! */
 		for (;;) {
 		} /* not enough memory? */
