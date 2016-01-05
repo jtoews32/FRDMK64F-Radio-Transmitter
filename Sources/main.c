@@ -49,14 +49,10 @@
 #include "PDD_Includes.h"
 #include "Init_Config.h"
 
-typedef uint8_t RPHY_FlagsType;
+#include "Packet.h"
 
-typedef struct {
-  RPHY_FlagsType flags;/*!< flags, see RPHY_PACKET_FLAGS_XXXX above */
-  uint8_t phySize;     /*!< size of PHY data buffer */
-  uint8_t *phyData;    /*!< pointer to the PHY data buffer */
-  uint8_t *rxtx;       /*!< pointer into phyData, start of TX/RX data */
-} RPHY_PacketDesc;
+
+
 
 #define nRFSPI_Enable()                   SM1_Enable()
 #define nRFSPI_Disable()                  SM1_Disable()
@@ -84,7 +80,7 @@ typedef struct {
 #define RPHY_BUF_SIZE(phy)                ((phy)[RPHY_BUF_IDX_SIZE])
 #define RPHY_BUF_PAYLOAD_START(phy)       ((phy)+RPHY_HEADER_SIZE)
 
-static RPHY_PacketDesc radioRx;
+static PacketDesc radioRx;
 static uint8_t radioRxBuf[2+32];
 static xQueueHandle MsgRxQueueHandle, MsgTxQueueHandle;
 
@@ -265,7 +261,7 @@ static uint8_t CheckRx(void) {
 	uint8_t res = ERR_OK;
 	uint8_t RxDataBuffer[2 + 32];
 	uint8_t status;
-	RPHY_PacketDesc packet;
+	PacketDesc packet;
 	bool hasRxData, hasRx;
 
 	hasRxData = FALSE;
@@ -334,10 +330,10 @@ uint8_t RMSG_GetTxMsg(uint8_t *buf, size_t bufSize) {
 }
 
 static uint8_t CheckTx(void) {
-	RPHY_PacketDesc packet;
+	PacketDesc packet;
 	uint8_t res = ERR_OK;
 	uint8_t TxDataBuffer[2 + 32]; //RPHY_BUFFER_SIZE];
-	RPHY_FlagsType flags;
+	FlagsType flags;
 
 	if (RMSG_GetTxMsg(TxDataBuffer, sizeof(TxDataBuffer)) == ERR_OK) {
 		flags = RPHY_BUF_FLAGS(TxDataBuffer);
