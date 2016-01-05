@@ -72,8 +72,10 @@ void Cpu_OnNMI(void)
 void IRQ1_OnInterrupt(void)
 {
   /* Write your code here ... */
-	// Actually read the status register to see what happened.
+	// Actually read the status register to see what happens
 	PE_DEBUGHALT();
+
+	// use semaphore and other task to retreive the data
 }
 
 /*

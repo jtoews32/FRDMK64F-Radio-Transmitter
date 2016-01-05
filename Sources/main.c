@@ -112,8 +112,6 @@ static void SPIWriteBuffer(uint8_t *bufOut, uint8_t bufSize) {
 	}
 }
 
-
-
 uint8_t* TXAddress() {
 	uint8_t val;
 	CSN_ClrVal();
@@ -139,7 +137,6 @@ uint8_t* TXAddress() {
 	uint8_t addr[4];
 	return addr;
 }
-
 
 uint8_t nRFReadRegister(uint8_t reg) {
 	uint8_t val;
@@ -360,36 +357,6 @@ static uint8_t CheckTx(void) {
 	return res;
 }
 
-void registerReader() {
-	uint8_t r_config = nRFReadRegister(0x00);
-	uint8_t r_shockburst = nRFReadRegister(0x01);
-	uint8_t r_rx = nRFReadRegister(0x02);
-	uint8_t r_setup = nRFReadRegister(0x03);
-	uint8_t r_autoRetransmit = nRFReadRegister(0x04);
-	uint8_t r7 = nRFReadRegister(0x05);
-	uint8_t r8 = nRFReadRegister(0x06);
-	uint8_t r_status = nRFReadRegister(0x07);
-	uint8_t r_transmitobserve = nRFReadRegister(0x08);
-	uint8_t r10 = nRFReadRegister(0x09);
-	uint8_t r_fifo = nRFReadRegister(0x17);
-	uint8_t r_dynpd = nRFReadRegister(0x1c);
-	uint8_t r_addr_TX = nRFReadRegister(0x10);
-	uint8_t r_addr0_RX = nRFReadRegister(0x0A);
-	uint8_t r_addr1_RX = nRFReadRegister(0x0b);
-	uint8_t r_addr2_RX = nRFReadRegister(0x0c);
-	uint8_t r_addr3_RX = nRFReadRegister(0x0d);
-	uint8_t r_addr4_RX = nRFReadRegister(0x0e);
-	uint8_t r_addr5_RX = nRFReadRegister(0x0f);
-	uint8_t r0 = nRFReadRegister(0x11);
-	uint8_t r1 = nRFReadRegister(0x12);
-	uint8_t r2 = nRFReadRegister(0x13);
-	uint8_t r3 = nRFReadRegister(0x14);
-	uint8_t r4 = nRFReadRegister(0x16);
-	uint8_t r5 = nRFReadRegister(0x18);
-	uint8_t r6 = nRFReadRegister(0x19);
-	return;
-}
-
 void receive() {
 	CSN_ClrVal();
 	nRFWrite(0b01100001); // rx payload
@@ -421,7 +388,6 @@ void transmit() {
 }
 
 void radioProcessor() {
-
 	uint8_t status, res;
 	static const uint8_t RADIO_TADDR[5] = { 0x11, 0x22, 0x33, 0x44, 0x55 };
 
@@ -487,17 +453,17 @@ static portTASK_FUNCTION(RNetTask, pvParameters) {
 		radioProcessor();
 
 		cntr++;
-		if (cntr == 100) { /* with an RTOS 10 ms/100 Hz tick rate, this is every second */
-			//LED3_On(); /* blink blue LED for 20 ms */
-			// RAPP_SendPayloadDataBlock(&msgCntr, sizeof(msgCntr), RAPP_MSG_TYPE_PING, RNWK_ADDR_BROADCAST, RPHY_PACKET_FLAGS_NONE);
+		if (cntr == 100) {
+			/* with an RTOS 10 ms/100 Hz tick rate, this is every second */
 
+			// RAPP_SendPayloadDataBlock(&msgCntr, sizeof(msgCntr), RAPP_MSG_TYPE_PING, RNWK_ADDR_BROADCAST, RPHY_PACKET_FLAGS_NONE);
 			msgCntr++;
 			cntr = 0;
 			FRTOS1_vTaskDelay(20/portTICK_RATE_MS);
-			// LED3_Off(); /* blink	 blue LED */
 		}
+
 		FRTOS1_vTaskDelay(10/portTICK_RATE_MS);
-	} /* for */
+	}
 }
 
 void wirelessInit(void) {
@@ -564,4 +530,35 @@ int main(void)
 **     for the Freescale Kinetis series of microcontrollers.
 **
 ** ###################################################################
+*/
+/*
+void registerReader() {
+	uint8_t r_config = nRFReadRegister(0x00);
+	uint8_t r_shockburst = nRFReadRegister(0x01);
+	uint8_t r_rx = nRFReadRegister(0x02);
+	uint8_t r_setup = nRFReadRegister(0x03);
+	uint8_t r_autoRetransmit = nRFReadRegister(0x04);
+	uint8_t r7 = nRFReadRegister(0x05);
+	uint8_t r8 = nRFReadRegister(0x06);
+	uint8_t r_status = nRFReadRegister(0x07);
+	uint8_t r_transmitobserve = nRFReadRegister(0x08);
+	uint8_t r10 = nRFReadRegister(0x09);
+	uint8_t r_fifo = nRFReadRegister(0x17);
+	uint8_t r_dynpd = nRFReadRegister(0x1c);
+	uint8_t r_addr_TX = nRFReadRegister(0x10);
+	uint8_t r_addr0_RX = nRFReadRegister(0x0A);
+	uint8_t r_addr1_RX = nRFReadRegister(0x0b);
+	uint8_t r_addr2_RX = nRFReadRegister(0x0c);
+	uint8_t r_addr3_RX = nRFReadRegister(0x0d);
+	uint8_t r_addr4_RX = nRFReadRegister(0x0e);
+	uint8_t r_addr5_RX = nRFReadRegister(0x0f);
+	uint8_t r0 = nRFReadRegister(0x11);
+	uint8_t r1 = nRFReadRegister(0x12);
+	uint8_t r2 = nRFReadRegister(0x13);
+	uint8_t r3 = nRFReadRegister(0x14);
+	uint8_t r4 = nRFReadRegister(0x16);
+	uint8_t r5 = nRFReadRegister(0x18);
+	uint8_t r6 = nRFReadRegister(0x19);
+	return;
+}
 */

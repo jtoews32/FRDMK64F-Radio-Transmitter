@@ -23,7 +23,6 @@ typedef struct {
   uint8_t *rxtx;       /*!< pointer into phyData, start of TX/RX data */
 } PacketDesc;
 
-
 int length(uint8_t *src);
 void addPayload(uint8_t *src, uint8_t *dest, int sz);
 
