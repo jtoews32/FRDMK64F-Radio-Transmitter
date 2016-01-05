@@ -88,6 +88,10 @@ static RPHY_PacketDesc radioRx;
 static uint8_t radioRxBuf[2+32];
 static xQueueHandle MsgRxQueueHandle, MsgTxQueueHandle;
 
+
+
+
+
 static uint8_t SPIWriteRead(uint8_t val) {
 	uint8_t ch;
 
